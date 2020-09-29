@@ -1,7 +1,13 @@
 #include <windows.h>
 
+#define global static
+#define local_persist static
+#define local2file static
+
+global BOOL Running;
+
 LRESULT CALLBACK MainWindowCallback(
-    _In_ HWND hwnd,
+    _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -19,15 +25,23 @@ LRESULT CALLBACK MainWindowCallback(
             OutputDebugString(TEXT("WM_SIZE\n"));
             break;
 
+        case WM_CLOSE:
+            Running = FALSE;
+            break;
+
+        case WM_DESTROY:
+            Running = FALSE;
+            break;
+
         case WM_PAINT:
         {
             PAINTSTRUCT ps = {};
-            HDC deviceContext = BeginPaint(hwnd, &ps);
+            HDC deviceContext = BeginPaint(hWnd, &ps);
             int x = ps.rcPaint.left;
             int y = ps.rcPaint.top;
             int w = ps.rcPaint.right - ps.rcPaint.left;
             int h = ps.rcPaint.bottom - ps.rcPaint.top;
-            static DWORD rasterOperation = BLACKNESS;
+            local_persist DWORD rasterOperation = BLACKNESS;
             PatBlt(deviceContext, x, y, w, h, rasterOperation);
             if (rasterOperation == BLACKNESS)
             {
@@ -38,12 +52,12 @@ LRESULT CALLBACK MainWindowCallback(
                 rasterOperation = BLACKNESS;
             }
 
-            EndPaint(hwnd, &ps);
+            EndPaint(hWnd, &ps);
         }
             break;
 
         default:
-            result = DefWindowProc(hwnd, uMsg, wParam, lParam);
+            result = DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 
     return result;
@@ -89,11 +103,15 @@ int WINAPI WinMain(
     BOOL gmReturn;
     MSG msg;
 
-    while ((gmReturn = GetMessage(&msg, NULL, 0, 0)) != 0)
+    Running = TRUE;
+
+    while (Running)
     {
+        gmReturn = GetMessage(&msg, NULL, 0, 0);
         if (gmReturn == -1)
         {
             // handle the error and possibly exit
+            break;
         }
         else
         {
